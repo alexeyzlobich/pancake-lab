@@ -15,12 +15,11 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class PancakeServiceTest {
-    private PancakeService pancakeService = new PancakeService();
-    private Order          order          = null;
-
-    private final static String DARK_CHOCOLATE_PANCAKE_DESCRIPTION           = "Delicious pancake with dark chocolate!";
-    private final static String MILK_CHOCOLATE_PANCAKE_DESCRIPTION           = "Delicious pancake with milk chocolate!";
+    private final static String DARK_CHOCOLATE_PANCAKE_DESCRIPTION = "Delicious pancake with dark chocolate!";
+    private final static String MILK_CHOCOLATE_PANCAKE_DESCRIPTION = "Delicious pancake with milk chocolate!";
     private final static String MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION = "Delicious pancake with milk chocolate, hazelnuts!";
+    private PancakeService pancakeService = new PancakeService();
+    private Order order = null;
 
     @Test
     @org.junit.jupiter.api.Order(10)
@@ -50,14 +49,14 @@ public class PancakeServiceTest {
         List<String> ordersPancakes = pancakeService.viewOrder(order.getId());
 
         assertEquals(List.of(DARK_CHOCOLATE_PANCAKE_DESCRIPTION,
-                             DARK_CHOCOLATE_PANCAKE_DESCRIPTION,
-                             DARK_CHOCOLATE_PANCAKE_DESCRIPTION,
-                             MILK_CHOCOLATE_PANCAKE_DESCRIPTION,
-                             MILK_CHOCOLATE_PANCAKE_DESCRIPTION,
-                             MILK_CHOCOLATE_PANCAKE_DESCRIPTION,
-                             MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION,
-                             MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION,
-                             MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION), ordersPancakes);
+                DARK_CHOCOLATE_PANCAKE_DESCRIPTION,
+                DARK_CHOCOLATE_PANCAKE_DESCRIPTION,
+                MILK_CHOCOLATE_PANCAKE_DESCRIPTION,
+                MILK_CHOCOLATE_PANCAKE_DESCRIPTION,
+                MILK_CHOCOLATE_PANCAKE_DESCRIPTION,
+                MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION,
+                MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION,
+                MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION), ordersPancakes);
 
         // tear down
     }
@@ -76,8 +75,8 @@ public class PancakeServiceTest {
         List<String> ordersPancakes = pancakeService.viewOrder(order.getId());
 
         assertEquals(List.of(DARK_CHOCOLATE_PANCAKE_DESCRIPTION,
-                             MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION,
-                             MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION), ordersPancakes);
+                MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION,
+                MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION), ordersPancakes);
 
         // tear down
     }
