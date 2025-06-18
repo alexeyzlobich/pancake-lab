@@ -1,15 +1,15 @@
 package org.pancakelab.service;
 
 import org.junit.jupiter.api.*;
-import org.pancakelab.model.Order;
+import org.pancakelab.model.order.Order;
+import org.pancakelab.model.order.OrderProcessingState;
+import org.pancakelab.repository.OrderRepository;
+import org.pancakelab.repository.impl.InMemoryOrderRepository;
 
 import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
  * This test class covers the process of ordering pancakes, from order creation to order delivery.
@@ -22,7 +22,9 @@ public class PancakeOrderingWorkflowTest {
     private static final String MILK_CHOCOLATE_PANCAKE_DESCRIPTION = "Delicious pancake with milk chocolate!";
     private static final String MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION = "Delicious pancake with milk chocolate, hazelnuts!";
 
-    private PancakeService pancakeService = new PancakeService();
+    private final OrderRepository orderRepository = new InMemoryOrderRepository();
+    private final PancakeService pancakeService = new PancakeService(orderRepository);
+
     private Order order = null;
 
     @Test
@@ -35,21 +37,22 @@ public class PancakeOrderingWorkflowTest {
         order = pancakeService.createOrder(10, 20);
 
         // then
-        assertThat(order.getBuilding()).isEqualTo(10);
-        assertThat(order.getRoom()).isEqualTo(20);
+        assertThat(order.getDeliveryAddress()).satisfies(address -> {
+            assertThat(address.building()).isEqualTo(10);
+            assertThat(address.room()).isEqualTo(20);
+        });
     }
 
     @Test
     @DisplayName("2. After that the Disciple can add pancakes from the menu.")
     public void GivenOrderExists_WhenAddingPancakes_ThenCorrectNumberOfPancakesAdded() {
-        // given
-        assertThat(order).isNotNull();
-
         // when
-        addPancakes();
+        pancakeService.addPancakesToOrder(order, DARK_CHOCOLATE_PANCAKE_DESCRIPTION, 3);
+        pancakeService.addPancakesToOrder(order, MILK_CHOCOLATE_PANCAKE_DESCRIPTION, 3);
+        pancakeService.addPancakesToOrder(order, MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION, 3);
 
         // then
-        List<String> ordersPancakes = pancakeService.viewOrder(order.getId());
+        List<String> ordersPancakes = pancakeService.viewOrder(order);
         assertThat(ordersPancakes).containsExactly(
                 DARK_CHOCOLATE_PANCAKE_DESCRIPTION,
                 DARK_CHOCOLATE_PANCAKE_DESCRIPTION,
@@ -66,21 +69,13 @@ public class PancakeOrderingWorkflowTest {
     @Test
     @DisplayName("3. The Disciple can remove some pancakes from the order")
     public void GivenPancakesExists_WhenRemovingPancakes_ThenCorrectNumberOfPancakesRemoved() {
-        // given
-        List<String> orderPancakes = pancakeService.viewOrder(order.getId());
-        assertThat(orderPancakes).contains(
-                DARK_CHOCOLATE_PANCAKE_DESCRIPTION,
-                MILK_CHOCOLATE_PANCAKE_DESCRIPTION,
-                MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION
-        );
-
         // when
-        pancakeService.removePancakes(DARK_CHOCOLATE_PANCAKE_DESCRIPTION, order.getId(), 2);
-        pancakeService.removePancakes(MILK_CHOCOLATE_PANCAKE_DESCRIPTION, order.getId(), 3);
-        pancakeService.removePancakes(MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION, order.getId(), 1);
+        pancakeService.removePancakesFromOrder(order, DARK_CHOCOLATE_PANCAKE_DESCRIPTION, 2);
+        pancakeService.removePancakesFromOrder(order, MILK_CHOCOLATE_PANCAKE_DESCRIPTION, 3);
+        pancakeService.removePancakesFromOrder(order, MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION, 1);
 
         // then
-        orderPancakes = pancakeService.viewOrder(order.getId());
+        List<String> orderPancakes = pancakeService.viewOrder(order);
 
         assertThat(orderPancakes).containsExactly(
                 DARK_CHOCOLATE_PANCAKE_DESCRIPTION,
@@ -93,55 +88,48 @@ public class PancakeOrderingWorkflowTest {
     @DisplayName("4. The Disciple can complete the Order")
     public void GivenOrderExists_WhenCompletingOrder_ThenOrderCompleted() {
         // when
-        pancakeService.completeOrder(order.getId());
+        pancakeService.completeOrder(order);
 
         // then
-        Set<UUID> completedOrdersOrders = pancakeService.listCompletedOrders();
-        assertThat(completedOrdersOrders).contains(order.getId());
+        List<Order> completedOrdersOrders = pancakeService.getCompletedOrders();
+        assertThat(completedOrdersOrders).contains(order);
     }
 
     @Test
-    @DisplayName("5. When the Disciple completes the Order, the Chef can prepare the pancakes.")
+    @DisplayName("5. After the Disciple completes the Order, the Chef can prepare the pancakes.")
     public void GivenOrderExists_WhenPreparingOrder_ThenOrderPrepared() {
         // when
-        pancakeService.prepareOrder(order.getId());
+        pancakeService.prepareOrder(order);
 
         // then
-        Set<UUID> completedOrders = pancakeService.listCompletedOrders();
-        assertThat(completedOrders).doesNotContain(order.getId());
+        List<Order> completedOrders = pancakeService.getCompletedOrders();
+        assertThat(completedOrders).doesNotContain(order);
 
-        Set<UUID> preparedOrders = pancakeService.listPreparedOrders();
-        assertThat(preparedOrders).contains(order.getId());
+        List<Order> preparedOrders = pancakeService.getPreparedOrders();
+        assertThat(preparedOrders).contains(order);
     }
 
     @Test
     @DisplayName("6. After the Chef prepares the Order it can be delivered.")
     public void GivenOrderExists_WhenDeliveringOrder_ThenCorrectOrderReturnedAndOrderRemovedFromTheDatabase() {
-        // given
-        List<String> pancakesToDeliver = pancakeService.viewOrder(order.getId());
-
         // when
-        Object[] deliveredOrder = pancakeService.deliverOrder(order.getId());
+        pancakeService.deliverOrder(order);
 
         // then
-        List<String> ordersPancakes = pancakeService.viewOrder(order.getId());
-        assertThat(ordersPancakes).isEmpty();
-        // todo: refactor this
-        assertEquals(order.getId(), ((Order) deliveredOrder[0]).getId());
-        assertEquals(pancakesToDeliver, (List<String>) deliveredOrder[1]);
+        List<Order> preparedOrders = pancakeService.getPreparedOrders();
+        assertThat(preparedOrders).doesNotContain(order);
+
+        assertThat(order.getOrderProcessingState()).isEqualTo(OrderProcessingState.DELIVERED);
     }
 
     @Test
     @DisplayName("7. After the Order is sent for delivery it is removed from the database.")
-    public void delivered_order_is_removed_from_database() {
+    public void GivenOrderDelivered_WhenFindingOrder_ThenOrderNotFound() {
         // when
-        Set<UUID> completedOrders = pancakeService.listCompletedOrders();
-        assertThat(completedOrders).doesNotContain(order.getId());
+        Optional<Order> actualResult = orderRepository.findOrderById(order.getId());
 
-        Set<UUID> preparedOrders = pancakeService.listPreparedOrders();
-        assertThat(preparedOrders).doesNotContain(order.getId());
-
-        List<String> ordersPancakes = pancakeService.viewOrder(order.getId());
+        // then
+        assertThat(actualResult).isEmpty();
 
         // tear down
         order = null;
@@ -153,26 +141,18 @@ public class PancakeOrderingWorkflowTest {
     public void GivenOrderExists_WhenCancellingOrder_ThenOrderAndPancakesRemoved() {
         // given
         order = pancakeService.createOrder(10, 20);
-        addPancakes();
+        pancakeService.addPancakesToOrder(order, DARK_CHOCOLATE_PANCAKE_DESCRIPTION, 1);
 
         // when
-        pancakeService.cancelOrder(order.getId());
+        pancakeService.cancelOrder(order);
 
         // then
-        Set<UUID> completedOrders = pancakeService.listCompletedOrders();
-        assertFalse(completedOrders.contains(order.getId()));
+        List<Order> completedOrders = pancakeService.getCompletedOrders();
+        assertThat(completedOrders).doesNotContain(order);
 
-        Set<UUID> preparedOrders = pancakeService.listPreparedOrders();
-        assertFalse(preparedOrders.contains(order.getId()));
+        List<Order> preparedOrders = pancakeService.getPreparedOrders();
+        assertThat(preparedOrders).doesNotContain(order);
 
-        List<String> ordersPancakes = pancakeService.viewOrder(order.getId());
-
-        assertEquals(List.of(), ordersPancakes);
-    }
-
-    private void addPancakes() {
-        pancakeService.addDarkChocolatePancake(order.getId(), 3);
-        pancakeService.addMilkChocolatePancake(order.getId(), 3);
-        pancakeService.addMilkChocolateHazelnutsPancake(order.getId(), 3);
+        assertThat(order.getOrderProcessingState()).isEqualTo(OrderProcessingState.CANCELLED);
     }
 }
