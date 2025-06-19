@@ -2,7 +2,7 @@ package org.pancakelab.repository.impl;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.pancakelab.model.order.Address;
+import org.pancakelab.TestSamples;
 import org.pancakelab.model.order.Order;
 import org.pancakelab.repository.exception.DuplicatedIdException;
 
@@ -23,7 +23,7 @@ class InMemoryOrderRepositoryTest {
         @Test
         void should_save_new_order() {
             // given
-            Order order = Sample.newOrder();
+            Order order = TestSamples.newEmptyOrder();
             assertThat(testInstance.findOrderById(order.getId())).isEmpty();
 
             // when
@@ -36,7 +36,7 @@ class InMemoryOrderRepositoryTest {
         @Test
         void should_throw_exception_when_order_with_same_id_already_exists() {
             // given
-            Order order = Sample.newOrder();
+            Order order = TestSamples.newEmptyOrder();
             testInstance.saveOrder(order);
 
             // when
@@ -56,7 +56,7 @@ class InMemoryOrderRepositoryTest {
         void should_return_empty_when_order_is_not_found() {
             // given
             // add some order
-            Order order = Sample.newOrder();
+            Order order = TestSamples.newEmptyOrder();
             testInstance.saveOrder(order);
 
             // when
@@ -69,7 +69,7 @@ class InMemoryOrderRepositoryTest {
         @Test
         void should_return_order_when_it_exists() {
             // given
-            Order order = Sample.newOrder();
+            Order order = TestSamples.newEmptyOrder();
             testInstance.saveOrder(order);
 
             // when
@@ -87,7 +87,7 @@ class InMemoryOrderRepositoryTest {
         @Test
         void should_remove_order() {
             // given
-            Order order = Sample.newOrder();
+            Order order = TestSamples.newEmptyOrder();
             testInstance.saveOrder(order);
 
             // when
@@ -100,7 +100,7 @@ class InMemoryOrderRepositoryTest {
         @Test
         void should_do_nothing_when_removing_non_existent_order() {
             // given
-            Order unsavedOrder = Sample.newOrder();
+            Order unsavedOrder = TestSamples.newEmptyOrder();
 
             // when
             testInstance.removeOrder(unsavedOrder);
@@ -117,7 +117,7 @@ class InMemoryOrderRepositoryTest {
         @Test
         void should_return_empty_list_when_no_completed_orders() {
             // given
-            testInstance.saveOrder(Sample.newOrder());
+            testInstance.saveOrder(TestSamples.newEmptyOrder());
 
             // when
             List<Order> completedOrders = testInstance.findCompletedOrders();
@@ -129,12 +129,10 @@ class InMemoryOrderRepositoryTest {
         @Test
         void should_return_only_completed_orders() {
             // given
-            Order order1 = Sample.newOrder();
-            order1.markCompleted();
+            Order order1 = TestSamples.completedOrder();
             testInstance.saveOrder(order1);
 
-            Order order2 = Sample.newOrder();
-            order2.markPrepared();
+            Order order2 = TestSamples.preparedOrder();
             testInstance.saveOrder(order2);
 
             // when
@@ -151,7 +149,7 @@ class InMemoryOrderRepositoryTest {
         @Test
         void should_return_empty_list_when_no_prepared_orders() {
             // given
-            testInstance.saveOrder(Sample.newOrder());
+            testInstance.saveOrder(TestSamples.newEmptyOrder());
 
             // when
             List<Order> preparedOrders = testInstance.findPreparedOrders();
@@ -163,12 +161,10 @@ class InMemoryOrderRepositoryTest {
         @Test
         void should_return_only_prepared_orders() {
             // given
-            Order order1 = Sample.newOrder();
-            order1.markPrepared();
+            Order order1 = TestSamples.preparedOrder();
             testInstance.saveOrder(order1);
 
-            Order order2 = Sample.newOrder();
-            order2.markCompleted();
+            Order order2 = TestSamples.completedOrder();
             testInstance.saveOrder(order2);
 
             // when
@@ -176,13 +172,6 @@ class InMemoryOrderRepositoryTest {
 
             // then
             assertThat(preparedOrders).containsExactly(order1);
-        }
-    }
-
-    static class Sample {
-
-        private static Order newOrder() {
-            return new Order(new Address(1, 2));
         }
     }
 }

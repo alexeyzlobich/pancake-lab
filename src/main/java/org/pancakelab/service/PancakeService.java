@@ -2,6 +2,7 @@ package org.pancakelab.service;
 
 import org.pancakelab.model.order.Address;
 import org.pancakelab.model.order.Order;
+import org.pancakelab.model.pancake.Ingredient;
 import org.pancakelab.model.pancake.Pancake;
 import org.pancakelab.model.pancake.PancakeMenu;
 import org.pancakelab.repository.OrderRepository;
@@ -11,9 +12,11 @@ import java.util.List;
 public class PancakeService {
 
     private final OrderRepository orderRepository;
+    private final PancakeMenu pancakeMenu;
 
-    public PancakeService(OrderRepository orderRepository) {
+    public PancakeService(OrderRepository orderRepository, PancakeMenu pancakeMenu) {
         this.orderRepository = orderRepository;
+        this.pancakeMenu = pancakeMenu;
     }
 
     public Order createOrder(int building, int room) {
@@ -24,9 +27,15 @@ public class PancakeService {
 
     public void addPancakesToOrder(Order order, String pancakeDescription, int count) {
         for (int i = 0; i < count; i++) {
-            Pancake pancakeFromMenu = PancakeMenu.INSTANCE.findPancake(pancakeDescription)
+            Pancake pancakeFromMenu = pancakeMenu.findPancakeByDescription(pancakeDescription)
                     .orElseThrow(() -> new RuntimeException("Sorry, there is no such pancake in menu"));
             order.addPancake(pancakeFromMenu);
+        }
+    }
+
+    public void addPancakesToOrder(Order order, List<Ingredient> ingredients, int count) {
+        for (int i = 0; i < count; i++) {
+            order.addPancake(new Pancake(ingredients));
         }
     }
 

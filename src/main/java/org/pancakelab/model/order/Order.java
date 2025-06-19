@@ -15,7 +15,7 @@ public class Order {
     private final UUID id;
     private final Address deliveryAddress;
     private final List<Pancake> pancakes;
-    private OrderProcessingState orderProcessingState;
+    private OrderState state;
 
     public Order(Address deliveryAddress) {
         if (deliveryAddress == null) {
@@ -24,45 +24,31 @@ public class Order {
         this.id = UUID.randomUUID();
         this.deliveryAddress = deliveryAddress;
         this.pancakes = new ArrayList<>();
-        this.orderProcessingState = OrderProcessingState.NEW;
+        this.state = new NewOrderState();
     }
 
     public void addPancake(Pancake pancake) {
-        if (pancake == null) {
-            throw new IllegalArgumentException("Pancake cannot be null");
-        }
-        this.pancakes.add(pancake);
-        logger.info(() -> "Added pancake with description '" + pancake.getDescription() + "' " +
-                "to order " + id + " containing " + pancakes.size() + " pancakes.");
+        state.addPancake(this, pancake);
     }
 
     public void removePancake(Pancake pancake) {
-        if (pancake == null) {
-            throw new IllegalArgumentException("Pancake cannot be null");
-        }
-        this.pancakes.remove(pancake);
-        logger.info(() -> "Removed pancake with description '" + pancake.getDescription() + "' " +
-                "from order " + id + " now containing " + pancakes.size() + " pancakes.");
+        state.removePancake(this, pancake);
     }
 
     public void markCancelled() {
-        this.orderProcessingState = OrderProcessingState.CANCELLED;
-        logger.info(() -> "Order " + id + " cancelled.");
-    }
-
-    public void markDelivered() {
-        this.orderProcessingState = OrderProcessingState.DELIVERED;
-        logger.info(() -> "Order " + id + " delivered.");
+        state.markCancelled(this);
     }
 
     public void markCompleted() {
-        this.orderProcessingState = OrderProcessingState.COMPLETED;
-        logger.info(() -> "Order " + id + " completed.");
+        state.markCompleted(this);
     }
 
     public void markPrepared() {
-        this.orderProcessingState = OrderProcessingState.PREPARED;
-        logger.info(() -> "Order " + id + " prepared.");
+        state.markPrepared(this);
+    }
+
+    public void markDelivered() {
+        state.markDelivered(this);
     }
 
     public UUID getId() {
@@ -74,7 +60,7 @@ public class Order {
     }
 
     public OrderProcessingState getOrderProcessingState() {
-        return orderProcessingState;
+        return state.getState();
     }
 
     public List<Pancake> getPancakes() {
@@ -91,5 +77,48 @@ public class Order {
     @Override
     public int hashCode() {
         return Objects.hashCode(id);
+    }
+
+    // --- State dependent methods/actions
+
+    void doAddPancake(Pancake pancake) {
+        if (pancake == null) {
+            throw new IllegalArgumentException("Pancake cannot be null");
+        }
+        this.pancakes.add(pancake);
+        logger.info(() -> "Added pancake with description '" + pancake.getDescription() + "' " +
+                "to order " + id + " containing " + pancakes.size() + " pancakes.");
+    }
+
+    void doRemovePancake(Pancake pancake) {
+        if (pancake == null) {
+            throw new IllegalArgumentException("Pancake cannot be null");
+        }
+        this.pancakes.remove(pancake);
+        logger.info(() -> "Removed pancake with description '" + pancake.getDescription() + "' " +
+                "from order " + id + " now containing " + pancakes.size() + " pancakes.");
+    }
+
+    void doMarkCancelled() {
+        state = new CancelledOrderState();
+        logger.info(() -> "Order " + id + " cancelled.");
+    }
+
+    void doMarkCompleted() {
+        if (pancakes.isEmpty()) {
+            throw new IllegalStateException("Cannot complete an order with no pancakes.");
+        }
+        state = new CompletedOrderState();
+        logger.info(() -> "Order " + id + " completed.");
+    }
+
+    void doMarkPrepared() {
+        state = new PreparedOrderState();
+        logger.info(() -> "Order " + id + " prepared.");
+    }
+
+    void doMarkDelivered() {
+        state = new DeliveredOrderState();
+        logger.info(() -> "Order " + id + " delivered.");
     }
 }

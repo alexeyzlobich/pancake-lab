@@ -3,6 +3,7 @@ package org.pancakelab.service;
 import org.junit.jupiter.api.*;
 import org.pancakelab.model.order.Order;
 import org.pancakelab.model.order.OrderProcessingState;
+import org.pancakelab.model.pancake.PancakeMenu;
 import org.pancakelab.repository.OrderRepository;
 import org.pancakelab.repository.impl.InMemoryOrderRepository;
 
@@ -23,7 +24,8 @@ public class PancakeOrderingWorkflowTest {
     private static final String MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION = "Delicious pancake with milk chocolate, hazelnuts!";
 
     private final OrderRepository orderRepository = new InMemoryOrderRepository();
-    private final PancakeService pancakeService = new PancakeService(orderRepository);
+    private final PancakeMenu pancakeMenu = new PancakeMenu();
+    private final PancakeService pancakeService = new PancakeService(orderRepository, pancakeMenu);
 
     private Order order = null;
 
