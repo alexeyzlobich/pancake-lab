@@ -19,7 +19,7 @@ public class TestSamples {
 
     public static Order newOrderWithPancake() {
         Order order = new Order(new Address(1, 1));
-        order.addPancake(pancake());
+        order.addPancake(pancake(), 1);
         return order;
     }
 

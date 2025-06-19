@@ -5,13 +5,13 @@ import org.pancakelab.model.pancake.Pancake;
 public class NewOrderState implements OrderState {
 
     @Override
-    public void addPancake(Order order, Pancake pancake) {
-        order.doAddPancake(pancake);
+    public void addPancake(Order order, Pancake pancake, int quantity) {
+        order.doAddPancake(pancake, quantity);
     }
 
     @Override
-    public void removePancake(Order order, Pancake pancake) {
-        order.doRemovePancake(pancake);
+    public void removePancake(Order order, Pancake pancake, int quantity) {
+        order.doRemovePancake(pancake, quantity);
     }
 
     @Override

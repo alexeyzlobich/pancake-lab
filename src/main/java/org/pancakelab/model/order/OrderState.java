@@ -4,9 +4,9 @@ import org.pancakelab.model.pancake.Pancake;
 
 public interface OrderState {
 
-    void addPancake(Order order, Pancake pancake);
+    void addPancake(Order order, Pancake pancake, int quantity);
 
-    void removePancake(Order order, Pancake pancake);
+    void removePancake(Order order, Pancake pancake, int quantity);
 
     void markCancelled(Order order);
 

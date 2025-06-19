@@ -5,12 +5,12 @@ import org.pancakelab.model.pancake.Pancake;
 public class DeliveredOrderState implements OrderState {
 
     @Override
-    public void addPancake(Order order, Pancake pancake) {
+    public void addPancake(Order order, Pancake pancake, int quantity) {
         throw new IllegalStateException("Cannot add pancakes to a delivered order.");
     }
 
     @Override
-    public void removePancake(Order order, Pancake pancake) {
+    public void removePancake(Order order, Pancake pancake, int quantity) {
         throw new IllegalStateException("Cannot remove pancakes from a delivered order.");
     }
 

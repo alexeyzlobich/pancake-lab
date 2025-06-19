@@ -3,7 +3,11 @@ package org.pancakelab.model.order;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.pancakelab.TestSamples;
+import org.pancakelab.model.pancake.Ingredient;
 import org.pancakelab.model.pancake.Pancake;
+
+import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchException;
@@ -14,16 +18,32 @@ class OrderTest {
     class AddPancake {
 
         @Test
-        void should_add_pancake() {
+        void should_add_pancake_when_order_is_empty() {
             // given
             Pancake pancake = TestSamples.pancake();
             Order order = TestSamples.newEmptyOrder();
 
             // when
-            order.addPancake(pancake);
+            order.addPancake(pancake, 2);
 
             // then
-            assertThat(order.getPancakes()).containsExactly(pancake);
+            assertThat(order.getPancakes()).containsExactly(Map.entry(pancake, 2));
+        }
+
+        @Test
+        void should_add_pancake_when_order_is_not_empty() {
+            // given
+            Pancake anotherPancake = new Pancake(List.of(Ingredient.HAZELNUTS));
+            Order order = TestSamples.newOrderWithPancake();
+
+            // when
+            order.addPancake(anotherPancake, 2);
+
+            // then
+            assertThat(order.getPancakes()).containsExactlyInAnyOrderEntriesOf(Map.ofEntries(
+                    Map.entry(TestSamples.pancake(), 1),
+                    Map.entry(anotherPancake, 2)
+            ));
         }
 
         @Test
@@ -33,11 +53,11 @@ class OrderTest {
             Order order = TestSamples.newEmptyOrder();
 
             // when
-            order.addPancake(pancake);
-            order.addPancake(pancake);
+            order.addPancake(pancake, 1);
+            order.addPancake(pancake, 1);
 
             // then
-            assertThat(order.getPancakes()).containsExactly(pancake, pancake);
+            assertThat(order.getPancakes()).containsExactly(Map.entry(pancake, 2));
         }
 
         @Test
@@ -47,7 +67,7 @@ class OrderTest {
             Order order = TestSamples.completedOrder();
 
             // when
-            Exception exception = catchException(() -> order.addPancake(pancake));
+            Exception exception = catchException(() -> order.addPancake(pancake, 1));
 
             // then
             assertThat(exception)
@@ -62,7 +82,7 @@ class OrderTest {
             Order order = TestSamples.cancelledOrder();
 
             // when
-            Exception exception = catchException(() -> order.addPancake(pancake));
+            Exception exception = catchException(() -> order.addPancake(pancake, 1));
 
             // then
             assertThat(exception)
@@ -77,7 +97,7 @@ class OrderTest {
             Order order = TestSamples.preparedOrder();
 
             // when
-            Exception exception = catchException(() -> order.addPancake(pancake));
+            Exception exception = catchException(() -> order.addPancake(pancake, 1));
 
             // then
             assertThat(exception)
@@ -92,7 +112,7 @@ class OrderTest {
             Order order = TestSamples.deliveredOrder();
 
             // when
-            Exception exception = catchException(() -> order.addPancake(pancake));
+            Exception exception = catchException(() -> order.addPancake(pancake, 1));
 
             // then
             assertThat(exception)
@@ -105,14 +125,42 @@ class OrderTest {
     class RemovePancake {
 
         @Test
-        void should_remove_pancake() {
+        void should_remove_pancake_completely() {
             // given
             Pancake pancake = TestSamples.pancake();
             Order order = TestSamples.newEmptyOrder();
-            order.addPancake(pancake);
+            order.addPancake(pancake, 2);
 
             // when
-            order.removePancake(pancake);
+            order.removePancake(pancake, 2);
+
+            // then
+            assertThat(order.getPancakes()).isEmpty();
+        }
+
+        @Test
+        void should_decrease_pancake_quantity() {
+            // given
+            Pancake pancake = TestSamples.pancake();
+            Order order = TestSamples.newEmptyOrder();
+            order.addPancake(pancake, 2);
+
+            // when
+            order.removePancake(pancake, 1);
+
+            // then
+            assertThat(order.getPancakes()).containsExactly(Map.entry(pancake, 1));
+        }
+
+        @Test
+        void should_remove_pancake_completely_when_removing_more_than_exist() {
+            // given
+            Pancake pancake = TestSamples.pancake();
+            Order order = TestSamples.newEmptyOrder();
+            order.addPancake(pancake, 2);
+
+            // when
+            order.removePancake(pancake, 3);
 
             // then
             assertThat(order.getPancakes()).isEmpty();
@@ -125,7 +173,7 @@ class OrderTest {
             Order order = TestSamples.completedOrder();
 
             // when
-            Exception exception = catchException(() -> order.removePancake(pancake));
+            Exception exception = catchException(() -> order.removePancake(pancake, 1));
 
             // then
             assertThat(exception)
@@ -140,7 +188,7 @@ class OrderTest {
             Order order = TestSamples.cancelledOrder();
 
             // when
-            Exception exception = catchException(() -> order.removePancake(pancake));
+            Exception exception = catchException(() -> order.removePancake(pancake, 1));
 
             // then
             assertThat(exception)
@@ -155,7 +203,7 @@ class OrderTest {
             Order order = TestSamples.preparedOrder();
 
             // when
-            Exception exception = catchException(() -> order.removePancake(pancake));
+            Exception exception = catchException(() -> order.removePancake(pancake, 1));
 
             // then
             assertThat(exception)
@@ -170,14 +218,13 @@ class OrderTest {
             Order order = TestSamples.deliveredOrder();
 
             // when
-            Exception exception = catchException(() -> order.removePancake(pancake));
+            Exception exception = catchException(() -> order.removePancake(pancake, 1));
 
             // then
             assertThat(exception)
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("Cannot remove pancakes from a delivered order");
         }
-
     }
 
     @Nested

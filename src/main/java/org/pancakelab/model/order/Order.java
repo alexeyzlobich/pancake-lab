@@ -2,10 +2,10 @@ package org.pancakelab.model.order;
 
 import org.pancakelab.model.pancake.Pancake;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Logger;
 
 public class Order {
@@ -14,8 +14,12 @@ public class Order {
 
     private final UUID id;
     private final Address deliveryAddress;
-    private final List<Pancake> pancakes;
+    private final List<OrderEntry> orderEntries;
     private OrderState state;
+
+    private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
+    private final Lock readLock = readWriteLock.readLock();
+    private final Lock writeLock = readWriteLock.writeLock();
 
     public Order(Address deliveryAddress) {
         if (deliveryAddress == null) {
@@ -23,16 +27,16 @@ public class Order {
         }
         this.id = UUID.randomUUID();
         this.deliveryAddress = deliveryAddress;
-        this.pancakes = new ArrayList<>();
+        this.orderEntries = new ArrayList<>();
         this.state = new NewOrderState();
     }
 
-    public void addPancake(Pancake pancake) {
-        state.addPancake(this, pancake);
+    public void addPancake(Pancake pancake, int quantity) {
+        state.addPancake(this, pancake, quantity);
     }
 
-    public void removePancake(Pancake pancake) {
-        state.removePancake(this, pancake);
+    public void removePancake(Pancake pancake, int quantity) {
+        state.removePancake(this, pancake, quantity);
     }
 
     public void markCancelled() {
@@ -60,11 +64,25 @@ public class Order {
     }
 
     public OrderProcessingState getOrderProcessingState() {
-        return state.getState();
+        readLock.lock();
+        try {
+            return state.getState();
+        } finally {
+            readLock.unlock();
+        }
     }
 
-    public List<Pancake> getPancakes() {
-        return List.copyOf(pancakes);
+    public Map<Pancake, Integer> getPancakes() {
+        readLock.lock();
+        try {
+            Map<Pancake, Integer> pancakes = new HashMap<>(orderEntries.size());
+            for (OrderEntry orderEntry : orderEntries) {
+                pancakes.put(orderEntry.getPancake(), orderEntry.getQuantity());
+            }
+            return Collections.unmodifiableMap(pancakes);
+        } finally {
+            readLock.unlock();
+        }
     }
 
     @Override
@@ -81,44 +99,104 @@ public class Order {
 
     // --- State dependent methods/actions
 
-    void doAddPancake(Pancake pancake) {
+    void doAddPancake(Pancake pancake, int quantity) {
         if (pancake == null) {
             throw new IllegalArgumentException("Pancake cannot be null");
         }
-        this.pancakes.add(pancake);
-        logger.info(() -> "Added pancake with description '" + pancake.getDescription() + "' " +
-                "to order " + id + " containing " + pancakes.size() + " pancakes.");
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("Quantity must be greater than zero");
+        }
+
+        writeLock.lock();
+        try {
+            OrderEntry existingOrderEntry = findExistingOrderEntryForPancake(pancake);
+            if (existingOrderEntry != null) {
+                existingOrderEntry.setQuantity(existingOrderEntry.getQuantity() + quantity);
+            } else {
+                orderEntries.add(new OrderEntry(pancake, quantity));
+            }
+        } finally {
+            writeLock.unlock();
+        }
+        logger.info(() -> "Added " + quantity + " pancake(s) with description '" + pancake.getDescription() + "' " +
+                "to order " + id + ".");
     }
 
-    void doRemovePancake(Pancake pancake) {
+    void doRemovePancake(Pancake pancake, int quantity) {
         if (pancake == null) {
             throw new IllegalArgumentException("Pancake cannot be null");
         }
-        this.pancakes.remove(pancake);
-        logger.info(() -> "Removed pancake with description '" + pancake.getDescription() + "' " +
-                "from order " + id + " now containing " + pancakes.size() + " pancakes.");
+
+        writeLock.lock();
+        try {
+            OrderEntry existingOrderEntry = findExistingOrderEntryForPancake(pancake);
+            if (existingOrderEntry != null) {
+                int newQuantity = existingOrderEntry.getQuantity() - quantity;
+                if (newQuantity <= 0) {
+                    orderEntries.remove(existingOrderEntry);
+                } else {
+                    existingOrderEntry.setQuantity(newQuantity);
+                }
+            } else {
+                logger.warning(() -> "Attempted to remove pancake with description '" + pancake.getDescription() +
+                        "' from order " + id + ", but it was not found in the order.");
+            }
+        } finally {
+            writeLock.unlock();
+        }
+        logger.info(() -> "Removed " + quantity + " pancake(s) with description '" + pancake.getDescription() + "' " +
+                "from order " + id + ".");
     }
 
     void doMarkCancelled() {
-        state = new CancelledOrderState();
+        writeLock.lock();
+        try {
+            state = new CancelledOrderState();
+        } finally {
+            writeLock.unlock();
+        }
         logger.info(() -> "Order " + id + " cancelled.");
     }
 
     void doMarkCompleted() {
-        if (pancakes.isEmpty()) {
-            throw new IllegalStateException("Cannot complete an order with no pancakes.");
+        writeLock.lock();
+        try {
+            if (orderEntries.isEmpty()) {
+                throw new IllegalStateException("Cannot complete an order with no pancakes.");
+            }
+            state = new CompletedOrderState();
+        } finally {
+            writeLock.unlock();
         }
-        state = new CompletedOrderState();
         logger.info(() -> "Order " + id + " completed.");
     }
 
     void doMarkPrepared() {
-        state = new PreparedOrderState();
+        writeLock.lock();
+        try {
+            state = new PreparedOrderState();
+        } finally {
+            writeLock.unlock();
+        }
         logger.info(() -> "Order " + id + " prepared.");
     }
 
     void doMarkDelivered() {
-        state = new DeliveredOrderState();
+        writeLock.lock();
+        try {
+            state = new DeliveredOrderState();
+        } finally {
+            writeLock.unlock();
+        }
         logger.info(() -> "Order " + id + " delivered.");
+    }
+
+    private OrderEntry findExistingOrderEntryForPancake(Pancake pancake) {
+        for (OrderEntry orderEntry : orderEntries) {
+            if (orderEntry.getPancake().equals(pancake)) {
+                return orderEntry;
+            }
+        }
+        return null;
     }
 }

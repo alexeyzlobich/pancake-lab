@@ -7,7 +7,9 @@ import org.pancakelab.model.pancake.Pancake;
 import org.pancakelab.model.pancake.PancakeMenu;
 import org.pancakelab.repository.OrderRepository;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class PancakeService {
 
@@ -26,25 +28,21 @@ public class PancakeService {
     }
 
     public void addPancakesToOrder(Order order, String pancakeDescription, int count) {
-        for (int i = 0; i < count; i++) {
-            Pancake pancakeFromMenu = pancakeMenu.findPancakeByDescription(pancakeDescription)
-                    .orElseThrow(() -> new RuntimeException("Sorry, there is no such pancake in menu"));
-            order.addPancake(pancakeFromMenu);
-        }
+        Pancake pancakeFromMenu = pancakeMenu.findPancakeByDescription(pancakeDescription)
+                .orElseThrow(() -> new RuntimeException("Sorry, there is no such pancake in menu"));
+
+        order.addPancake(pancakeFromMenu, count);
     }
 
     public void addPancakesToOrder(Order order, List<Ingredient> ingredients, int count) {
-        for (int i = 0; i < count; i++) {
-            order.addPancake(new Pancake(ingredients));
-        }
+        order.addPancake(new Pancake(ingredients), count);
     }
 
     public void removePancakesFromOrder(Order order, String pancakeDescription, int count) {
-        order.getPancakes()
-                .stream()
-                .filter(pancake -> pancakeDescription.equals(pancake.getDescription()))
-                .limit(count)
-                .forEach(order::removePancake);
+        Pancake pancakeFromMenu = pancakeMenu.findPancakeByDescription(pancakeDescription)
+                .orElseThrow(() -> new RuntimeException("Sorry, there is no such pancake in menu"));
+
+        order.removePancake(pancakeFromMenu, count);
     }
 
     public void cancelOrder(Order order) {
@@ -73,10 +71,13 @@ public class PancakeService {
         orderRepository.removeOrder(order);
     }
 
-    public List<String> viewOrder(Order order) {
-        return order.getPancakes()
-                .stream()
-                .map(Pancake::getDescription)
-                .toList();
+    public Map<String, Integer> viewOrder(Order order) {
+        Map<Pancake, Integer> pancakesInOrder = order.getPancakes();
+        Map<String, Integer> descriptionToReturn = new HashMap<>(pancakesInOrder.size());
+
+        for (Map.Entry<Pancake, Integer> entry : pancakesInOrder.entrySet()) {
+            descriptionToReturn.put(entry.getKey().getDescription(), entry.getValue());
+        }
+        return descriptionToReturn;
     }
 }

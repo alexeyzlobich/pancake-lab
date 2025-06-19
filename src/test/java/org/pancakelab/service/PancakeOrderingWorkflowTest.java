@@ -8,6 +8,7 @@ import org.pancakelab.repository.OrderRepository;
 import org.pancakelab.repository.impl.InMemoryOrderRepository;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -54,18 +55,12 @@ public class PancakeOrderingWorkflowTest {
         pancakeService.addPancakesToOrder(order, MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION, 3);
 
         // then
-        List<String> ordersPancakes = pancakeService.viewOrder(order);
-        assertThat(ordersPancakes).containsExactly(
-                DARK_CHOCOLATE_PANCAKE_DESCRIPTION,
-                DARK_CHOCOLATE_PANCAKE_DESCRIPTION,
-                DARK_CHOCOLATE_PANCAKE_DESCRIPTION,
-                MILK_CHOCOLATE_PANCAKE_DESCRIPTION,
-                MILK_CHOCOLATE_PANCAKE_DESCRIPTION,
-                MILK_CHOCOLATE_PANCAKE_DESCRIPTION,
-                MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION,
-                MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION,
-                MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION
-        );
+        Map<String, Integer> ordersPancakes = pancakeService.viewOrder(order);
+        assertThat(ordersPancakes).containsExactlyInAnyOrderEntriesOf(Map.ofEntries(
+                Map.entry(DARK_CHOCOLATE_PANCAKE_DESCRIPTION, 3),
+                Map.entry(MILK_CHOCOLATE_PANCAKE_DESCRIPTION, 3),
+                Map.entry(MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION, 3)
+        ));
     }
 
     @Test
@@ -77,13 +72,11 @@ public class PancakeOrderingWorkflowTest {
         pancakeService.removePancakesFromOrder(order, MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION, 1);
 
         // then
-        List<String> orderPancakes = pancakeService.viewOrder(order);
-
-        assertThat(orderPancakes).containsExactly(
-                DARK_CHOCOLATE_PANCAKE_DESCRIPTION,
-                MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION,
-                MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION
-        );
+        Map<String, Integer> orderPancakes = pancakeService.viewOrder(order);
+        assertThat(orderPancakes).containsExactlyInAnyOrderEntriesOf(Map.ofEntries(
+                Map.entry(DARK_CHOCOLATE_PANCAKE_DESCRIPTION, 1),
+                Map.entry(MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION, 2)
+        ));
     }
 
     @Test
