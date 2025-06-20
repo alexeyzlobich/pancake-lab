@@ -21,7 +21,7 @@ class InMemoryOrderRepositoryTest {
     class SaveOrder {
 
         @Test
-        void should_save_new_order() {
+        void ShouldSaveNewOrder_WhenOrderDoesNotExist() {
             // given
             Order order = TestSamples.newEmptyOrder();
             assertThat(testInstance.findOrderById(order.getId())).isEmpty();
@@ -34,7 +34,7 @@ class InMemoryOrderRepositoryTest {
         }
 
         @Test
-        void should_throw_exception_when_order_with_same_id_already_exists() {
+        void ShouldThrowException_WhenOrderWithSameIdExists() {
             // given
             Order order = TestSamples.newEmptyOrder();
             testInstance.saveOrder(order);
@@ -53,7 +53,7 @@ class InMemoryOrderRepositoryTest {
     class FindOrderById {
 
         @Test
-        void should_return_empty_when_order_is_not_found() {
+        void ShouldReturnEmpty_WhenOrderIsNotFound() {
             // given
             // add some order
             Order order = TestSamples.newEmptyOrder();
@@ -67,7 +67,7 @@ class InMemoryOrderRepositoryTest {
         }
 
         @Test
-        void should_return_order_when_it_exists() {
+        void ShouldReturnOrder_WhenOrderExists() {
             // given
             Order order = TestSamples.newEmptyOrder();
             testInstance.saveOrder(order);
@@ -85,7 +85,7 @@ class InMemoryOrderRepositoryTest {
     class RemoveOrder {
 
         @Test
-        void should_remove_order() {
+        void ShouldRemoveOrder_WhenOrderExists() {
             // given
             Order order = TestSamples.newEmptyOrder();
             testInstance.saveOrder(order);
@@ -98,7 +98,7 @@ class InMemoryOrderRepositoryTest {
         }
 
         @Test
-        void should_do_nothing_when_removing_non_existent_order() {
+        void ShouldDoNothing_WhenRemovingNonExistentOrder() {
             // given
             Order unsavedOrder = TestSamples.newEmptyOrder();
 
@@ -115,7 +115,7 @@ class InMemoryOrderRepositoryTest {
     class FindCompletedOrders {
 
         @Test
-        void should_return_empty_list_when_no_completed_orders() {
+        void ShouldReturnEmptyList_WhenNoCompletedOrders() {
             // given
             testInstance.saveOrder(TestSamples.newEmptyOrder());
 
@@ -127,7 +127,7 @@ class InMemoryOrderRepositoryTest {
         }
 
         @Test
-        void should_return_only_completed_orders() {
+        void ShouldReturnOnlyCompletedOrders_WhenCompletedOrdersExist() {
             // given
             Order order1 = TestSamples.completedOrder();
             testInstance.saveOrder(order1);
@@ -147,7 +147,7 @@ class InMemoryOrderRepositoryTest {
     class FindPreparedOrders {
 
         @Test
-        void should_return_empty_list_when_no_prepared_orders() {
+        void ShouldReturnEmptyList_WhenNoPreparedOrders() {
             // given
             testInstance.saveOrder(TestSamples.newEmptyOrder());
 
@@ -159,7 +159,7 @@ class InMemoryOrderRepositoryTest {
         }
 
         @Test
-        void should_return_only_prepared_orders() {
+        void ShouldReturnOnlyPreparedOrders_WhenPreparedOrdersExist() {
             // given
             Order order1 = TestSamples.preparedOrder();
             testInstance.saveOrder(order1);

@@ -1,0 +1,29 @@
+@startuml
+
+!theme plain
+top to bottom direction
+skinparam linetype ortho
+
+enum Ingredient << enumeration >> {
+  + WHIPPED_CREAM: 
+  + MUSTARD: 
+  + MILK_CHOCOLATE: 
+  + HAZELNUTS: 
+  + DARK_CHOCOLATE: 
+  - name: String
+  + getName(): String
+}
+class Pancake {
+  - ingredients: List<Ingredient>
+  - description: String
+  + getDescription(): String
+}
+class PancakeMenu {
+  - menuEntries: Map<String, Pancake>
+  + findPancakeByDescription(String): Optional<Pancake>
+}
+
+Pancake     "1" *-[#595959,plain]-> "ingredients\n*" Ingredient  
+PancakeMenu  -[#595959,dashed]->  Pancake     : "«create»"
+PancakeMenu "1" *-[#595959,plain]-> "menuEntries\n*" Pancake     
+@enduml

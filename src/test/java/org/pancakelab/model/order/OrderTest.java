@@ -1,16 +1,21 @@
 package org.pancakelab.model.order;
 
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.pancakelab.TestSamples;
+import org.pancakelab.model.order.exception.*;
 import org.pancakelab.model.pancake.Ingredient;
 import org.pancakelab.model.pancake.Pancake;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.*;
+import java.util.stream.IntStream;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.catchException;
+import static org.assertj.core.api.Assertions.*;
 
 class OrderTest {
 
@@ -18,7 +23,7 @@ class OrderTest {
     class AddPancake {
 
         @Test
-        void should_add_pancake_when_order_is_empty() {
+        void ShouldAddPancake_WhenOrderIsEmpty() {
             // given
             Pancake pancake = TestSamples.pancake();
             Order order = TestSamples.newEmptyOrder();
@@ -31,7 +36,7 @@ class OrderTest {
         }
 
         @Test
-        void should_add_pancake_when_order_is_not_empty() {
+        void ShouldAddPancake_WhenOrderIsNotEmpty() {
             // given
             Pancake anotherPancake = new Pancake(List.of(Ingredient.HAZELNUTS));
             Order order = TestSamples.newOrderWithPancake();
@@ -47,7 +52,7 @@ class OrderTest {
         }
 
         @Test
-        void should_be_able_to_add_the_same_pancake_multiple_times() {
+        void ShouldAddTheSamePancake_WhenAddedMultipleTimes() {
             // given
             Pancake pancake = TestSamples.pancake();
             Order order = TestSamples.newEmptyOrder();
@@ -60,8 +65,24 @@ class OrderTest {
             assertThat(order.getPancakes()).containsExactly(Map.entry(pancake, 2));
         }
 
+        @ParameterizedTest
+        @ValueSource(ints = {0, -1})
+        void ShouldThrowException_WhenQuantityIsInvalid(int invalidQuantityValue) {
+            // given
+            Order order = TestSamples.newEmptyOrder();
+            Pancake pancake = TestSamples.pancake();
+
+            // when
+            Exception exception = catchException(() -> order.addPancake(pancake, invalidQuantityValue));
+
+            // then
+            assertThat(exception)
+                    .isInstanceOf(InvalidQuantityException.class)
+                    .hasMessageContaining("Quantity must be greater than zero");
+        }
+
         @Test
-        void should_throw_exception_when_order_is_completed() {
+        void ShouldThrowException_WhenOrderIsCompleted() {
             // given
             Pancake pancake = TestSamples.pancake();
             Order order = TestSamples.completedOrder();
@@ -71,12 +92,12 @@ class OrderTest {
 
             // then
             assertThat(exception)
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(OrderCompletedException.class)
                     .hasMessageContaining("Cannot add pancakes to a completed order");
         }
 
         @Test
-        void should_throw_exception_when_order_is_cancelled() {
+        void ShouldThrowException_WhenOrderIsCancelled() {
             // given
             Pancake pancake = TestSamples.pancake();
             Order order = TestSamples.cancelledOrder();
@@ -86,12 +107,12 @@ class OrderTest {
 
             // then
             assertThat(exception)
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(OrderCancelledException.class)
                     .hasMessageContaining("Cannot add pancakes to a cancelled order");
         }
 
         @Test
-        void should_throw_exception_when_order_is_prepared() {
+        void ShouldThrowException_WhenOrderIsPrepared() {
             // given
             Pancake pancake = TestSamples.pancake();
             Order order = TestSamples.preparedOrder();
@@ -101,12 +122,12 @@ class OrderTest {
 
             // then
             assertThat(exception)
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(OrderPreparedException.class)
                     .hasMessageContaining("Cannot add pancakes to a prepared order");
         }
 
         @Test
-        void should_throw_exception_when_order_is_delivered() {
+        void ShouldThrowException_WhenOrderIsDelivered() {
             // given
             Pancake pancake = TestSamples.pancake();
             Order order = TestSamples.deliveredOrder();
@@ -116,8 +137,30 @@ class OrderTest {
 
             // then
             assertThat(exception)
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(OrderDeliveredException.class)
                     .hasMessageContaining("Cannot add pancakes to a delivered order");
+        }
+
+        @RepeatedTest(10)
+        void ShouldBeThreadSafe() throws InterruptedException {
+            // given
+            Order order = TestSamples.newEmptyOrder();
+            Pancake pancake = TestSamples.pancake();
+
+            int nThreads = 100;
+            ExecutorService executorService = Executors.newFixedThreadPool(nThreads);
+            CyclicBarrier startingPoint = new CyclicBarrier(nThreads);
+
+            // when
+            IntStream.range(0, nThreads).forEach((i) -> executorService.execute(() -> {
+                await(startingPoint);
+                order.addPancake(pancake, 1);
+            }));
+
+            // then
+            awaitTermination(executorService);
+
+            assertThat(order.getPancakes()).containsExactly(Map.entry(pancake, 100));
         }
     }
 
@@ -125,7 +168,7 @@ class OrderTest {
     class RemovePancake {
 
         @Test
-        void should_remove_pancake_completely() {
+        void ShouldRemovePancakeCompletely_WhenQuantityMatches() {
             // given
             Pancake pancake = TestSamples.pancake();
             Order order = TestSamples.newEmptyOrder();
@@ -139,7 +182,7 @@ class OrderTest {
         }
 
         @Test
-        void should_decrease_pancake_quantity() {
+        void ShouldDecreasePancakeQuantity_WhenRemovingPartially() {
             // given
             Pancake pancake = TestSamples.pancake();
             Order order = TestSamples.newEmptyOrder();
@@ -153,7 +196,7 @@ class OrderTest {
         }
 
         @Test
-        void should_remove_pancake_completely_when_removing_more_than_exist() {
+        void ShouldRemovePancakeCompletely_WhenRemovingMoreThanExist() {
             // given
             Pancake pancake = TestSamples.pancake();
             Order order = TestSamples.newEmptyOrder();
@@ -166,8 +209,24 @@ class OrderTest {
             assertThat(order.getPancakes()).isEmpty();
         }
 
+        @ParameterizedTest
+        @ValueSource(ints = {0, -1})
+        void ShouldThrowException_WhenQuantityIsInvalid(int invalidQuantityValue) {
+            // given
+            Order order = TestSamples.newOrderWithPancake();
+            Pancake pancake = TestSamples.pancake();
+
+            // when
+            Exception exception = catchException(() -> order.removePancake(pancake, invalidQuantityValue));
+
+            // then
+            assertThat(exception)
+                    .isInstanceOf(InvalidQuantityException.class)
+                    .hasMessageContaining("Quantity must be greater than zero");
+        }
+
         @Test
-        void should_throw_exception_when_order_is_completed() {
+        void ShouldThrowException_WhenOrderIsCompleted() {
             // given
             Pancake pancake = TestSamples.pancake();
             Order order = TestSamples.completedOrder();
@@ -177,12 +236,12 @@ class OrderTest {
 
             // then
             assertThat(exception)
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(OrderCompletedException.class)
                     .hasMessageContaining("Cannot remove pancakes from a completed order");
         }
 
         @Test
-        void should_throw_exception_when_order_is_cancelled() {
+        void ShouldThrowException_WhenOrderIsCancelled() {
             // given
             Pancake pancake = TestSamples.pancake();
             Order order = TestSamples.cancelledOrder();
@@ -192,12 +251,12 @@ class OrderTest {
 
             // then
             assertThat(exception)
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(OrderCancelledException.class)
                     .hasMessageContaining("Cannot remove pancakes from a cancelled order");
         }
 
         @Test
-        void should_throw_exception_when_order_is_prepared() {
+        void ShouldThrowException_WhenOrderIsPrepared() {
             // given
             Pancake pancake = TestSamples.pancake();
             Order order = TestSamples.preparedOrder();
@@ -207,12 +266,12 @@ class OrderTest {
 
             // then
             assertThat(exception)
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(OrderPreparedException.class)
                     .hasMessageContaining("Cannot remove pancakes from a prepared order");
         }
 
         @Test
-        void should_throw_exception_when_order_is_delivered() {
+        void ShouldThrowException_WhenOrderIsDelivered() {
             // given
             Pancake pancake = TestSamples.pancake();
             Order order = TestSamples.deliveredOrder();
@@ -222,8 +281,31 @@ class OrderTest {
 
             // then
             assertThat(exception)
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(OrderDeliveredException.class)
                     .hasMessageContaining("Cannot remove pancakes from a delivered order");
+        }
+
+        @RepeatedTest(10)
+        void ShouldBeThreadSafe() throws InterruptedException {
+            // given
+            Order order = TestSamples.newEmptyOrder();
+            Pancake pancake = TestSamples.pancake();
+            order.addPancake(pancake, 101);
+
+            int nThreads = 100;
+            ExecutorService executorService = Executors.newFixedThreadPool(nThreads);
+            CyclicBarrier startingPoint = new CyclicBarrier(nThreads);
+
+            // when
+            IntStream.range(0, nThreads).forEach((i) -> executorService.execute(() -> {
+                await(startingPoint);
+                order.removePancake(pancake, 1);
+            }));
+
+            // then
+            awaitTermination(executorService);
+
+            assertThat(order.getPancakes()).containsExactly(Map.entry(pancake, 1));
         }
     }
 
@@ -231,7 +313,7 @@ class OrderTest {
     class MarkCancelled {
 
         @Test
-        void should_mark_order_as_cancelled_when_order_is_empty() {
+        void ShouldMarkOrderAsCancelled_WhenOrderIsEmpty() {
             // given
             Order order = TestSamples.newEmptyOrder();
 
@@ -243,7 +325,7 @@ class OrderTest {
         }
 
         @Test
-        void should_mark_order_as_cancelled_when_order_is_not_empty() {
+        void ShouldMarkOrderAsCancelled_WhenOrderIsNotEmpty() {
             // given
             Order order = TestSamples.newOrderWithPancake();
 
@@ -255,7 +337,7 @@ class OrderTest {
         }
 
         @Test
-        void should_throw_exception_when_order_is_completed() {
+        void ShouldThrowException_WhenOrderIsCompleted() {
             // given
             Order order = TestSamples.completedOrder();
 
@@ -264,12 +346,12 @@ class OrderTest {
 
             // then
             assertThat(exception)
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(OrderCompletedException.class)
                     .hasMessageContaining("Cannot cancel a completed order");
         }
 
         @Test
-        void should_throw_exception_when_order_is_prepared() {
+        void ShouldThrowException_WhenOrderIsPrepared() {
             // given
             Order order = TestSamples.preparedOrder();
 
@@ -278,12 +360,12 @@ class OrderTest {
 
             // then
             assertThat(exception)
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(OrderPreparedException.class)
                     .hasMessageContaining("Cannot cancel a prepared order");
         }
 
         @Test
-        void should_throw_exception_when_order_is_delivered() {
+        void ShouldThrowException_WhenOrderIsDelivered() {
             // given
             Order order = TestSamples.deliveredOrder();
 
@@ -292,7 +374,7 @@ class OrderTest {
 
             // then
             assertThat(exception)
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(OrderDeliveredException.class)
                     .hasMessageContaining("Cannot cancel a delivered order");
         }
     }
@@ -301,7 +383,7 @@ class OrderTest {
     class MarkCompleted {
 
         @Test
-        void should_mark_order_as_completed() {
+        void ShouldMarkOrderAsCompleted_WhenOrderHasPancakes() {
             // given
             Order order = TestSamples.newOrderWithPancake();
 
@@ -313,7 +395,7 @@ class OrderTest {
         }
 
         @Test
-        void should_throw_exception_when_order_is_empty() {
+        void ShouldThrowException_WhenCompletingEmptyOrder() {
             // given
             Order order = TestSamples.newEmptyOrder();
 
@@ -322,12 +404,12 @@ class OrderTest {
 
             // then
             assertThat(exception)
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(OrderStateException.class)
                     .hasMessageContaining("Cannot complete an order with no pancakes");
         }
 
         @Test
-        void should_throw_exception_when_order_is_cancelled() {
+        void ShouldThrowException_WhenOrderIsCancelled() {
             // given
             Order order = TestSamples.cancelledOrder();
 
@@ -336,12 +418,12 @@ class OrderTest {
 
             // then
             assertThat(exception)
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(OrderCancelledException.class)
                     .hasMessageContaining("Cannot complete a cancelled order");
         }
 
         @Test
-        void should_throw_exception_when_order_is_prepared() {
+        void ShouldThrowException_WhenOrderIsPrepared() {
             // given
             Order order = TestSamples.preparedOrder();
 
@@ -350,12 +432,12 @@ class OrderTest {
 
             // then
             assertThat(exception)
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(OrderPreparedException.class)
                     .hasMessageContaining("Cannot complete a prepared order");
         }
 
         @Test
-        void should_throw_exception_when_order_is_delivered() {
+        void ShouldThrowException_WhenOrderIsDelivered() {
             // given
             Order order = TestSamples.deliveredOrder();
 
@@ -364,7 +446,7 @@ class OrderTest {
 
             // then
             assertThat(exception)
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(OrderDeliveredException.class)
                     .hasMessageContaining("Cannot complete a delivered order");
         }
     }
@@ -373,7 +455,7 @@ class OrderTest {
     class MarkPrepared {
 
         @Test
-        void should_mark_order_as_prepared() {
+        void ShouldMarkOrderAsPrepared_WhenOrderIsCompleted() {
             // given
             Order order = TestSamples.completedOrder();
 
@@ -385,7 +467,7 @@ class OrderTest {
         }
 
         @Test
-        void should_throw_exception_when_order_is_not_completed() {
+        void ShouldThrowException_WhenOrderIsNew() {
             // given
             Order order = TestSamples.newOrderWithPancake();
 
@@ -394,12 +476,12 @@ class OrderTest {
 
             // then
             assertThat(exception)
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(NewOrderException.class)
                     .hasMessageContaining("Cannot prepare a new order. Order must be completed first.");
         }
 
         @Test
-        void should_throw_exception_when_order_is_cancelled() {
+        void ShouldThrowException_WhenOrderIsCancelled() {
             // given
             Order order = TestSamples.cancelledOrder();
 
@@ -408,12 +490,12 @@ class OrderTest {
 
             // then
             assertThat(exception)
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(OrderCancelledException.class)
                     .hasMessageContaining("Cannot prepare a cancelled order");
         }
 
         @Test
-        void should_throw_exception_when_order_is_delivered() {
+        void ShouldThrowException_WhenOrderIsDelivered() {
             // given
             Order order = TestSamples.deliveredOrder();
 
@@ -422,7 +504,7 @@ class OrderTest {
 
             // then
             assertThat(exception)
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(OrderDeliveredException.class)
                     .hasMessageContaining("Cannot prepare a delivered order");
         }
     }
@@ -431,7 +513,7 @@ class OrderTest {
     class MarkDelivered {
 
         @Test
-        void should_mark_order_as_delivered() {
+        void ShouldMarkOrderAsDelivered_WhenOrderIsPrepared() {
             // given
             Order order = TestSamples.preparedOrder();
 
@@ -443,7 +525,7 @@ class OrderTest {
         }
 
         @Test
-        void should_throw_exception_when_order_is_not_prepared() {
+        void ShouldThrowException_WhenOrderIsCompleted() {
             // given
             Order order = TestSamples.completedOrder();
 
@@ -452,12 +534,12 @@ class OrderTest {
 
             // then
             assertThat(exception)
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(OrderCompletedException.class)
                     .hasMessageContaining("Cannot deliver a completed order. Order must be prepared first.");
         }
 
         @Test
-        void should_throw_exception_when_order_is_cancelled() {
+        void ShouldThrowException_WhenOrderIsCancelled() {
             // given
             Order order = TestSamples.cancelledOrder();
 
@@ -466,8 +548,23 @@ class OrderTest {
 
             // then
             assertThat(exception)
-                    .isInstanceOf(IllegalStateException.class)
+                    .isInstanceOf(OrderCancelledException.class)
                     .hasMessageContaining("Cannot deliver a cancelled order");
+        }
+    }
+
+    private static void await(CyclicBarrier startingPoint) {
+        try {
+            startingPoint.await();
+        } catch (InterruptedException | BrokenBarrierException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static void awaitTermination(ExecutorService executorService) throws InterruptedException {
+        executorService.shutdown();
+        if (!executorService.awaitTermination(5, TimeUnit.SECONDS)) {
+            fail("Something went wrong");
         }
     }
 }

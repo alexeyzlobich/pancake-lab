@@ -14,7 +14,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * This test class covers the process of ordering pancakes, from order creation to order delivery.
+ * This test class covers an end-to-end process of ordering pancakes, from order creation to order delivery.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.DisplayName.class)
@@ -50,9 +50,9 @@ public class PancakeOrderingWorkflowTest {
     @DisplayName("2. After that the Disciple can add pancakes from the menu.")
     public void GivenOrderExists_WhenAddingPancakes_ThenCorrectNumberOfPancakesAdded() {
         // when
-        pancakeService.addPancakesToOrder(order, DARK_CHOCOLATE_PANCAKE_DESCRIPTION, 3);
-        pancakeService.addPancakesToOrder(order, MILK_CHOCOLATE_PANCAKE_DESCRIPTION, 3);
-        pancakeService.addPancakesToOrder(order, MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION, 3);
+        pancakeService.addPancakeToOrder(order, DARK_CHOCOLATE_PANCAKE_DESCRIPTION, 3);
+        pancakeService.addPancakeToOrder(order, MILK_CHOCOLATE_PANCAKE_DESCRIPTION, 3);
+        pancakeService.addPancakeToOrder(order, MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION, 3);
 
         // then
         Map<String, Integer> ordersPancakes = pancakeService.viewOrder(order);
@@ -67,9 +67,9 @@ public class PancakeOrderingWorkflowTest {
     @DisplayName("3. The Disciple can remove some pancakes from the order")
     public void GivenPancakesExists_WhenRemovingPancakes_ThenCorrectNumberOfPancakesRemoved() {
         // when
-        pancakeService.removePancakesFromOrder(order, DARK_CHOCOLATE_PANCAKE_DESCRIPTION, 2);
-        pancakeService.removePancakesFromOrder(order, MILK_CHOCOLATE_PANCAKE_DESCRIPTION, 3);
-        pancakeService.removePancakesFromOrder(order, MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION, 1);
+        pancakeService.removePancakeFromOrder(order, DARK_CHOCOLATE_PANCAKE_DESCRIPTION, 2);
+        pancakeService.removePancakeFromOrder(order, MILK_CHOCOLATE_PANCAKE_DESCRIPTION, 3);
+        pancakeService.removePancakeFromOrder(order, MILK_CHOCOLATE_HAZELNUTS_PANCAKE_DESCRIPTION, 1);
 
         // then
         Map<String, Integer> orderPancakes = pancakeService.viewOrder(order);
@@ -125,29 +125,5 @@ public class PancakeOrderingWorkflowTest {
 
         // then
         assertThat(actualResult).isEmpty();
-
-        // tear down
-        order = null;
-    }
-
-    // todo: refactor it
-    @Test
-    @DisplayName("8. Some test case with order cancellation")
-    public void GivenOrderExists_WhenCancellingOrder_ThenOrderAndPancakesRemoved() {
-        // given
-        order = pancakeService.createOrder(10, 20);
-        pancakeService.addPancakesToOrder(order, DARK_CHOCOLATE_PANCAKE_DESCRIPTION, 1);
-
-        // when
-        pancakeService.cancelOrder(order);
-
-        // then
-        List<Order> completedOrders = pancakeService.getCompletedOrders();
-        assertThat(completedOrders).doesNotContain(order);
-
-        List<Order> preparedOrders = pancakeService.getPreparedOrders();
-        assertThat(preparedOrders).doesNotContain(order);
-
-        assertThat(order.getOrderProcessingState()).isEqualTo(OrderProcessingState.CANCELLED);
     }
 }

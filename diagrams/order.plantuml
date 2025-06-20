@@ -1,0 +1,84 @@
+@startuml
+
+!theme plain
+top to bottom direction
+skinparam linetype ortho
+
+entity Address << record >> {
+  - building: int
+  - room: int
+  + building(): int
+  + room(): int
+}
+interface OrderState << interface >> {
+  + markPrepared(Order): void
+  + markCancelled(Order): void
+  + getState(): OrderProcessingState
+  + addPancake(Order, Pancake, int): void
+  + markCompleted(Order): void
+  + markDelivered(Order): void
+  + removePancake(Order, Pancake, int): void
+}
+class PreparedOrderState {
+}
+class CancelledOrderState {
+}
+class CompletedOrderState {
+}
+class DeliveredOrderState {
+}
+class NewOrderState {
+}
+class Order {
+  - state: OrderState
+  - deliveryAddress: Address
+  - orderEntries: List<OrderEntry>
+  - id: UUID
+  + getPancakes(): Map<Pancake, Integer>
+  + addPancake(Pancake, int): void
+  + removePancake(Pancake, int): void
+  + getId(): UUID
+  + getOrderProcessingState(): OrderProcessingState
+  + getDeliveryAddress(): Address
+  + markCompleted(): void
+  + markCancelled(): void
+  + markPrepared(): void
+  + markDelivered(): void
+  ~ doAddPancake(Pancake, int): void
+  ~ doRemovePancake(Pancake, int): void
+  ~ doMarkCompleted(): void
+  ~ doMarkCancelled(): void
+  ~ doMarkPrepared(): void
+  ~ doMarkDelivered(): void
+  - findExistingOrderEntryForPancake(Pancake): OrderEntry?
+}
+class OrderEntry {
+  - pancake: Pancake
+  - quantity: int
+  + getPancake(): Pancake
+  + setQuantity(int): void
+  + getQuantity(): int
+}
+enum OrderProcessingState << enumeration >> {
+  + CANCELLED: 
+  + DELIVERED: 
+  + PREPARED: 
+  + NEW: 
+  + COMPLETED: 
+}
+
+CancelledOrderState   -[#008200,dashed]-^  OrderState           
+CompletedOrderState   -[#008200,dashed]-^  OrderState           
+DeliveredOrderState   -[#008200,dashed]-^  OrderState           
+NewOrderState         -[#008200,dashed]-^  OrderState           
+Order                "1" *-[#595959,plain]-> "deliveryAddress\n1" Address              
+Order                 -[#595959,dashed]->  CancelledOrderState  : "«create»"
+Order                 -[#595959,dashed]->  CompletedOrderState  : "«create»"
+Order                 -[#595959,dashed]->  DeliveredOrderState  : "«create»"
+Order                 -[#595959,dashed]->  NewOrderState        : "«create»"
+Order                "1" *-[#595959,plain]-> "orderEntries\n*" OrderEntry           
+Order                 -[#595959,dashed]->  OrderEntry           : "«create»"
+Order                "1" *-[#595959,plain]-> "state\n1" OrderState           
+Order                 -[#595959,dashed]->  PreparedOrderState   : "«create»"
+PreparedOrderState    -[#008200,dashed]-^  OrderState           
+@enduml

@@ -1,5 +1,6 @@
 package org.pancakelab.model.order;
 
+import org.pancakelab.model.order.exception.NewOrderException;
 import org.pancakelab.model.pancake.Pancake;
 
 public class NewOrderState implements OrderState {
@@ -26,12 +27,12 @@ public class NewOrderState implements OrderState {
 
     @Override
     public void markPrepared(Order order) {
-        throw new IllegalStateException("Cannot prepare a new order. Order must be completed first.");
+        throw new NewOrderException("Cannot prepare a new order. Order must be completed first.");
     }
 
     @Override
     public void markDelivered(Order order) {
-        throw new IllegalStateException("Cannot deliver a new order. Order must be prepared first.");
+        throw new NewOrderException("Cannot deliver a new order. Order must be prepared first.");
     }
 
     @Override

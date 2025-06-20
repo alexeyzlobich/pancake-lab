@@ -28,6 +28,13 @@ public class PancakeMenu {
         doAddPancakeToMenu(new Pancake(List.of(Ingredient.MILK_CHOCOLATE)));
     }
 
+    /**
+     * Finds a pancake in the menu by its description.
+     *
+     * @param pancakeDescription the description of the pancake to find
+     * @return an Optional containing the pancake if found, or an empty Optional if no pancake
+     * with the given description exists in the menu
+     */
     public Optional<Pancake> findPancakeByDescription(String pancakeDescription) {
         return Optional.ofNullable(menuEntries.get(pancakeDescription));
     }

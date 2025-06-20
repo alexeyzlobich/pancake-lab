@@ -1,6 +1,8 @@
 package org.pancakelab.repository.exception;
 
-public class DuplicatedIdException extends RuntimeException {
+import org.pancakelab.model.exception.DomainException;
+
+public class DuplicatedIdException extends DomainException {
     public DuplicatedIdException(String message) {
         super(message);
     }

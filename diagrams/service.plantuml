@@ -1,0 +1,45 @@
+@startuml
+
+!theme plain
+top to bottom direction
+skinparam linetype ortho
+
+class InMemoryOrderRepository {
+  - ordersStorage: ConcurrentMap<UUID, Order>
+  + saveOrder(Order): void
+  + removeOrder(Order): void
+  + findPreparedOrders(): List<Order>
+  + findCompletedOrders(): List<Order>
+  + findOrderById(UUID): Optional<Order>
+}
+interface OrderRepository << interface >> {
+  + findPreparedOrders(): List<Order>
+  + saveOrder(Order): void
+  + findOrderById(UUID): Optional<Order>
+  + removeOrder(Order): void
+  + findCompletedOrders(): List<Order>
+}
+class PancakeMenu {
+  - menuEntries: Map<String, Pancake>
+  + findPancakeByDescription(String): Optional<Pancake>
+}
+class PancakeService {
+  - pancakeMenu: PancakeMenu
+  - orderRepository: OrderRepository
+  + deliverOrder(Order): void
+  + completeOrder(Order): void
+  + prepareOrder(Order): void
+  + getPreparedOrders(): List<Order>
+  + addPancakeToOrder(Order, String, int): void
+  + addPancakeToOrder(Order, List<Ingredient>, int): void
+  + createOrder(int, int): Order
+  + cancelOrder(Order): void
+  + getCompletedOrders(): List<Order>
+  + removePancakeFromOrder(Order, String, int): void
+  + viewOrder(Order): Map<String, Integer>
+}
+
+InMemoryOrderRepository  -[#008200,dashed]-^  OrderRepository         
+PancakeService          "1" *-[#595959,plain]-> "orderRepository\n1" OrderRepository         
+PancakeService          "1" *-[#595959,plain]-> "pancakeMenu\n1" PancakeMenu             
+@enduml
